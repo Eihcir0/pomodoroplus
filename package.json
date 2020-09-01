@@ -35,15 +35,15 @@
 				"default": 3,
 				"description": "Pomodoro work session length (minutes)"
 			},
-			"pomodoroplus.promptForLongBreak": {
+			"pomodoroplus.setMin": {
 				"type": "number",
 				"default": 4,
-				"description": "After completing how many pomodoros should the user be prompted for a long break?  (0 for never)"
+				"description": "Minimum sessions in a set.  After completing how many pomodoros should the user be prompted for a long break? (0 for never)"
 			},
-			"pomodoroplus.maximumSessions": {
+			"pomodoroplus.setMax": {
 				"type": "number",
 				"default": 6,
-				"description": "Maximum sessions allowed (0 for unlimited)"
+				"description": "Maximum sessions allowed per set before requiring long break (0 for unlimited)"
 			}
 		}
 	},

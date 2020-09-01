@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as ui from './uiHelpers';
 import * as say from 'say';
 import Pomodoro, { PpStatus } from './Pomodoro';
+import { ppid } from 'process';
 
 const CONFIG_NAME = 'pomodoroplus';
 
@@ -9,12 +10,14 @@ enum Actions {
 	StartWorking = 'Start working',
 	ContinueWorking = 'Continue working',
 	StartBreak = 'Start break',
+	StartLongBreak = 'Start long break',
 	ContinueBreak = 'Continue break',
 	StartNew = 'Start new P🍅MOdoro',
 }
 
 export default class PomodoroPlusVSC {
-	private _completedCount: number;
+	private _completedPomodoroCount: number;
+	private _completedSetCount: number;
 	// private _config: vscode.WorkspaceConfiguration;
 	private _config: any;
 	private _currentPomodoro: Pomodoro;
@@ -25,9 +28,13 @@ export default class PomodoroPlusVSC {
 		// this._config = vscode.workspace.getConfiguration(CONFIG_NAME);
 		this._config = {
 			workMinutes: 25,
-			breakMinutes: 3,
+			shortBreakMinutes: 3,
+			longBreakMinutes: 20,
+			setMin: 4,
+			setMax: 6,
 		};
-		this._completedCount = 0;
+		this._completedPomodoroCount = 0;
+		this._completedSetCount = 0;
 
 		this._currentPomodoro = this._resetPomodoro();
 
@@ -45,37 +52,83 @@ export default class PomodoroPlusVSC {
 	private _resetPomodoro = () => {
 		return new Pomodoro(
 			this._config.workMinutes,
-			this._config.breakMinutes,
+			this._config.shortBreakMinutes,
+			this._config.longBreakMinutes,
 			this._onUpdate,
 			this._onFinish,
 		);
 	};
 
 	private _showMainMenu = () => {
-		let actions: string[] = [];
+		let message: string = '';
+		const actions: string[] = [];
 		switch (this._currentPomodoro.status) {
 			case PpStatus.NotStarted:
-				actions = [Actions.StartWorking];
+				message = `Would you like to begin P🍅MOdoro #${
+					this._completedPomodoroCount + 1
+				}, set #${this._completedSetCount + 1}`;
+				actions.push(Actions.StartWorking);
 				break;
 			case PpStatus.Working:
-				actions = [Actions.ContinueWorking];
+				message = `Now working on P🍅MOdoro #${
+					this._completedPomodoroCount + 1
+				}, set #${this._completedSetCount + 1}`;
+				actions.push(Actions.ContinueWorking);
 				break;
 			case PpStatus.Break:
-				actions = [Actions.ContinueBreak];
+				message = `Now on break for P🍅MOdoro #${
+					this._completedPomodoroCount + 1
+				}, set #${this._completedSetCount + 1}`;
+				actions.push(Actions.ContinueBreak);
 				break;
 			case PpStatus.WorkDone:
-				actions = [Actions.StartBreak];
+				if (this._completedPomodoroCount >= this._config.setMin - 1) {
+					actions.push(Actions.StartLongBreak);
+					if (
+						this._completedPomodoroCount <
+						this._config.setMax - 1
+					) {
+						actions.push(Actions.StartBreak);
+					}
+					message = `Finished work on P🍅MOdoro #${
+						this._completedPomodoroCount + 1
+					}, set #${this._completedSetCount + 1}. Would you like to start your ${
+						this._config.shortBreakMinutes
+					} minute long break?`;
+				} else {
+					actions.push(Actions.StartBreak);
+					message = `Finished work on P🍅MOdoro #${
+						this._completedPomodoroCount + 1
+					}, set #${this._completedSetCount + 1}. Would you like to start your ${
+						this._config.shortBreakMinutes
+					} minute break?`;
+				}
 				break;
-			case PpStatus.AllDone:
-				actions = [Actions.StartNew];
+			case PpStatus.PomodoroDone:
+				// logic messed up here being #7 set #1 should say #1 set #2
+				message = `Would you like to begin a new P🍅MOdoro #${
+					this._completedPomodoroCount + 1
+				}, set #${this._completedSetCount + 1}?`;
+				actions.push(Actions.StartNew);
+				break;
+			case PpStatus.SetDone:
+				const sets = this._completedSetCount === 1 ? '1 full set' : `${this._completedSetCount} full sets`;
+				message = `Congratulations!  You've completed ${sets} of P🍅MOdoros. Would you like to begin set #${
+					this._completedSetCount + 1
+				}?`;
+				actions.push(Actions.StartNew);
 				break;
 			default:
 				break;
 		}
-		ui.openModalWithActionButtons(actions, this._handleSelection);
+		ui.openModalWithActionButtons(
+			message,
+			actions,
+			this._handleMainMenuSelection,
+		);
 	};
 
-	private _handleSelection = (response: string | undefined) => {
+	private _handleMainMenuSelection = (response: string | undefined) => {
 		switch (response) {
 			case Actions.StartWorking:
 				this._currentPomodoro.start();
@@ -84,6 +137,10 @@ export default class PomodoroPlusVSC {
 
 			case Actions.StartBreak:
 				this._currentPomodoro.start();
+				break;
+
+			case Actions.StartLongBreak:
+				this._currentPomodoro.start(true);
 				break;
 
 			case Actions.ContinueWorking:
@@ -100,7 +157,35 @@ export default class PomodoroPlusVSC {
 				break;
 
 			default:
+				if (response === undefined) {
+					this._confirmCancel();
+				}
 				break;
+		}
+	};
+
+	private _confirmCancel = () => {
+		if (
+			!this._currentPomodoro ||
+			this._currentPomodoro.status === PpStatus.NotStarted
+		) {
+			return;
+		} else {
+			ui.openModalWithActionButtons(
+				'Are you sure you want to end this Pomodoro session early?',
+				['Yes, abort this Pomodoro'],
+				this._handleCancelConfirmResponse,
+			);
+		}
+	};
+
+	private _handleCancelConfirmResponse = (response: string | undefined) => {
+		if (response) {
+			this._currentPomodoro.cancel();
+			this._currentPomodoro = this._resetPomodoro();
+			this._onUpdate();
+		} else {
+			this._showMainMenu();
 		}
 	};
 
@@ -108,17 +193,22 @@ export default class PomodoroPlusVSC {
 		if (this._currentPomodoro === null) {
 			return;
 		}
-		const secondsRemaining = this._currentPomodoro.secondsRemaining;
-		if (
-			secondsRemaining < 60 &&
+		if (this._currentPomodoro.status === PpStatus.NotStarted) {
+			this._statusBar.text = `🍅${this._currentPomodoro.status}`;
+		} else if (
+			this._currentPomodoro.secondsRemaining < 60 &&
 			this._currentPomodoro.tickCount % 2 === 1 &&
 			!this._currentPomodoro.paused
 		) {
 			// For blinking' effect during last minute, don't show time every other tick
-			this._statusBar.text = `🍅${this._currentPomodoro.status}`;
+			this._statusBar.color = 'yellow';
 		} else {
-			const seconds = Math.floor(secondsRemaining % 60);
-			const minutes = Math.floor(secondsRemaining / 60);
+			const seconds = Math.floor(
+				this._currentPomodoro.secondsRemaining % 60,
+			);
+			const minutes = Math.floor(
+				this._currentPomodoro.secondsRemaining / 60,
+			);
 
 			// update status bar (text)
 			const timeDisplay =
@@ -127,7 +217,7 @@ export default class PomodoroPlusVSC {
 				':' +
 				(seconds < 10 ? '0' : '') +
 				seconds;
-
+			this._statusBar.color = 'white';
 			this._statusBar.text = `${timeDisplay} 🍅${this._currentPomodoro.status}`;
 		}
 		this._statusBar.show();
@@ -135,9 +225,16 @@ export default class PomodoroPlusVSC {
 
 	private _onFinish = () => {
 		if (this._currentPomodoro.status === PpStatus.WorkDone) {
-			say.speak('This Pomodoro work session is now over.  Nice job.');
-		} else if (this._currentPomodoro.status === PpStatus.AllDone) {
-			say.speak('Break time is over.')
+			say.speak('This Pomodoro work session is now over.');
+		} else if (this._currentPomodoro.status === PpStatus.PomodoroDone) {
+			say.speak('Break time is over.');
+			this._completedPomodoroCount += 1;
+		} else if (this._currentPomodoro.status === PpStatus.SetDone) {
+			say.speak(
+				'You completed an entire set of Pomodoros.  Congratulations.',
+			);
+			this._completedPomodoroCount = 0;
+			this._completedSetCount += 1;
 		}
 		this._onUpdate();
 		this._showMainMenu();

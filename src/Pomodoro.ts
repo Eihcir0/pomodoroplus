@@ -6,7 +6,9 @@ export enum PpStatus {
 	Working = 'Working',
 	WorkDone = 'WorkDone',
 	Break = 'On Break',
-	AllDone = 'All Done',
+	LongBreak = 'On Long Break',
+	PomodoroDone = 'Pomodoro Done',
+	SetDone = 'Pomodoro Set Done',
 }
 
 export default class Pomodoro {
@@ -40,14 +42,15 @@ export default class Pomodoro {
 
 	constructor(
 		private _workMinutes: number,
-		private _breakMinutes: number,
+		private _shortBreakMinutes: number,
+		private _longBreakMinutes: number,
 		public onUpdate: () => void,
 		public onFinish: () => void,
 	) {
 		this._status = PpStatus.NotStarted;
 	}
 
-	public start() {
+	public start(long: boolean = false) {
 		if (this._status === PpStatus.NotStarted) {
 			this._status = PpStatus.Working;
 			this._timer = new Timer(
@@ -56,13 +59,18 @@ export default class Pomodoro {
 				this._onFinish,
 			);
 		} else if (this._status === PpStatus.WorkDone) {
-			this._status = PpStatus.Break;
+			this._status = long ? PpStatus.LongBreak : PpStatus.Break;
+			const duration = long ? this._longBreakMinutes : this._shortBreakMinutes;
 			this._timer = new Timer(
-				this._breakMinutes * 60,
+				duration * 60,
 				this.onUpdate,
 				this._onFinish,
 			);
 		}
+	}
+
+	public cancel() {
+		this._timer?.clearTimeout();
 	}
 
 	public pause = () => {
@@ -77,7 +85,9 @@ export default class Pomodoro {
 		if (this._status === PpStatus.Working) {
 			this._status = PpStatus.WorkDone;
 		} else if (this.status === PpStatus.Break) {
-			this._status = PpStatus.AllDone;
+			this._status = PpStatus.PomodoroDone;
+		} else if (this.status === PpStatus.LongBreak) {
+			this._status = PpStatus.SetDone;
 		}
 		this.onFinish();
 	};

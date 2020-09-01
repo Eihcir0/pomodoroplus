@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 
 export function openModalWithActionButtons(
+	message: string,
 	actions: string[],
 	processResponse: (r: string | undefined) => void,
 ): void {
@@ -9,7 +10,7 @@ export function openModalWithActionButtons(
 	};
 	vscode.window
 		.showInformationMessage(
-			'Hello devTooligan from P🍅MOdoro+!',
+			message,
 			options,
 			...actions,
 		)
