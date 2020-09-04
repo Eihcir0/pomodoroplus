@@ -9,7 +9,6 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 
 	context.subscriptions.push(pomodoroPlusVsc, activateDisposable);
-	// context.subscriptions.push(activateDisposable);
 }
 
 export function deactivate() {

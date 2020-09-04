@@ -49,25 +49,30 @@ export default class PomodoroPlusVSC {
 		const actions: string[] = [];
 		switch (this._currentPomodoro.status) {
 			case PpStatus.NotStarted:
-				message = `Would you like to begin P🍅MOdoro #${
+				message = `P🍅MOdoro #${
 					this._completedPomodoroCount + 1
-				}, set #${this._completedSetCount + 1}`;
+				} -- Let's begin!`;
 				actions.push(Actions.StartWorking);
 				break;
 			case PpStatus.Working:
-				message = `Now working on P🍅MOdoro #${
+				message = `P🍅MOdoro #${
 					this._completedPomodoroCount + 1
-				}, set #${this._completedSetCount + 1}`;
+				} -- working (paused)`;
 				actions.push(Actions.ContinueWorking);
 				break;
 			case PpStatus.Break:
-				message = `Now on break for P🍅MOdoro #${
+				message = `P🍅MOdoro #${
 					this._completedPomodoroCount + 1
-				}, set #${this._completedSetCount + 1}`;
+				} -- on break (paused)`;
 				actions.push(Actions.ContinueBreak);
 				break;
 			case PpStatus.WorkDone:
 				if (this._completedPomodoroCount >= this._config.setMin - 1) {
+					message = `P🍅MOdoro #${
+						this._completedPomodoroCount + 1
+					} -- finished work.  Begin long break? (${
+						this._config.shortBreakMinutes
+					} minutes)`;
 					actions.push(Actions.StartLongBreak);
 					if (
 						this._completedPomodoroCount <
@@ -75,27 +80,17 @@ export default class PomodoroPlusVSC {
 					) {
 						actions.push(Actions.StartBreak);
 					}
-					message = `Finished work on P🍅MOdoro #${
-						this._completedPomodoroCount + 1
-					}, set #${
-						this._completedSetCount + 1
-					}. Would you like to start your ${
-						this._config.shortBreakMinutes
-					} minute long break?`;
 				} else {
-					actions.push(Actions.StartBreak);
-					message = `Finished work on P🍅MOdoro #${
+					message = `P🍅MOdoro #${
 						this._completedPomodoroCount + 1
-					}, set #${
-						this._completedSetCount + 1
-					}. Would you like to start your ${
+					} -- finished work.  Begin short break? (${
 						this._config.shortBreakMinutes
-					} minute break?`;
+					} minutes)`;
+					actions.push(Actions.StartBreak);
 				}
 				break;
 			case PpStatus.PomodoroDone:
-				// logic messed up here being #7 set #1 should say #1 set #2
-				message = `Would you like to begin a new P🍅MOdoro #${
+				message = `Begin P🍅MOdoro #${
 					this._completedPomodoroCount + 1
 				}, set #${this._completedSetCount + 1}?`;
 				actions.push(Actions.StartNew);
@@ -105,7 +100,7 @@ export default class PomodoroPlusVSC {
 					this._completedSetCount === 1
 						? '1 full set'
 						: `${this._completedSetCount} full sets`;
-				message = `Congratulations!  You've completed ${sets} of P🍅MOdoros. Would you like to begin set #${
+				message = `Congratulations!  You've completed ${sets} of P🍅MOdoros. Begin set #${
 					this._completedSetCount + 1
 				}?`;
 				actions.push(Actions.StartNew);
@@ -123,8 +118,9 @@ export default class PomodoroPlusVSC {
 	private _handleMainMenuSelection = (response: string | undefined) => {
 		switch (response) {
 			case Actions.StartWorking:
-				this._currentPomodoro.start();
 				say.speak('Enjoy your pomodoro');
+				// this._setSlackWorking();
+				this._currentPomodoro.start();
 				break;
 
 			case Actions.StartBreak:
@@ -139,6 +135,7 @@ export default class PomodoroPlusVSC {
 			case Actions.ContinueWorking:
 				say.speak('Unpause');
 				this._currentPomodoro.unpause();
+				// this._setSlackStatus();
 				break;
 
 			case Actions.ContinueBreak:
@@ -153,11 +150,107 @@ export default class PomodoroPlusVSC {
 
 			default:
 				if (response === undefined) {
+					// hijack the 'Cancel' button to cancel the current pomodoro
 					this._confirmCancel();
 				}
 				break;
 		}
 	};
+
+	// private _makeRequest(data: any, token: string, json: boolean = true) {
+	// 	const path = '/api/users.profile.set';
+	// 	const postData = json
+	// 		? JSON.stringify(data)
+	// 		: querystring.stringify(data);
+
+	// 	const reqParams = {
+	// 		hostname: 'slack.com',
+	// 		port: 443,
+	// 		path,
+	// 		method: 'POST',
+	// 		headers: {
+	// 			Authorization: `Bearer ${token}`,
+	// 			'Content-Type': json
+	// 				? 'application/json; charset=utf-8'
+	// 				: 'application/x-www-form-urlencoded',
+	// 		},
+	// 	};
+
+	// 	const req = https.request(reqParams, res => {
+	// 		res.on('data', d => {
+	// 			console.log('data: ' + d);
+	// 		});
+	// 		res.on('error', e => {
+	// 			console.log('error: ' + e);
+	// 		});
+	// 	});
+	// 	req.on('error', e => {
+	// 		console.error(e);
+	// 	});
+	// 	req.write(postData);
+	// 	req.end();
+	// }
+
+	// private _setSlackStatus = () => {
+	// 	const status_expiration = Math.floor(
+	// 		Date.now() / 1000 + this._currentPomodoro?.secondsRemaining,
+	// 	);
+	// 	const data: any = {
+	// 		profile: {
+	// 			status_text: 'P🍅MOdoro -- working',
+	// 			status_emoji: ':tomato:',
+	// 			status_expiration,
+	// 		},
+	// 	};
+	// 	this._makeRequest(data, this._config.slackAppBearerToken, true);
+	// }
+
+	// private _setSlackStatus = () => {
+	// 	const status_expiration = Math.floor(
+	// 		Date.now() / 1000 + this._currentPomodoro?.secondsRemaining,
+	// 	);
+	// 	const data: any = {
+	// 		profile: {
+	// 			status_text: 'P🍅MOdoro -- working',
+	// 			status_emoji: ':tomato:',
+	// 			status_expiration,
+	// 		},
+	// 	};
+	// 	this._makeRequest(data, this._config.slackAppBearerToken, true);
+	// }
+
+	// private _setSlackWorking = () => {
+	// 	this._setSlackStatus();
+	// 	this._setSlackPauseNotifications();
+
+
+		// 		console.log(response);
+		// 'Content-Length': postData.length,
+		// Authorization: `Bearer ${this._config.slackAppBearerToken}`,
+
+		// https.request(reqParams, (res: http.IncomingMessage) => {
+		// 	console.log(res);
+
+		// 	var body = '';
+		// 	res.on('data', chunk => {
+		// 		body += chunk;
+		// 	});
+		// 	res.on('end', () => {
+		// 		console.log('end');
+		// 		var response = JSON.parse(body);
+		// 		console.log(response);
+		// 		if (response.error) {
+		// 			console.log(response.error);
+		// 		}
+		// 	});
+		// });
+
+		// sendRequest(
+		// 	'/api/users.profile.set',
+		// 	postData,
+		// 	true,
+		// 	this._config.slackAppBearerToken,
+	// };
 
 	private _confirmCancel = () => {
 		if (
