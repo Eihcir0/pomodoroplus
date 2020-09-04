@@ -2,7 +2,8 @@
 	"name": "pomodoroplus",
 	"displayName": "Pomodoro+",
 	"description": "A customizable Pomodoro timer that challenges you with activity ideas for your breaks!",
-	"version": "0.0.1",
+	"repository": "https://github.com/Eihcir0/pomodoroplus",
+	"version": "0.5.0",
 	"engines": {
 		"vscode": "^1.48.0"
 	},
