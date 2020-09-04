@@ -172,7 +172,7 @@ export default class PomodoroPlusVSC {
 			};
 		} else {
 			const status_expiration = Math.floor(
-				Date.now() / 1000 + this._currentPomodoro.secondsRemaining,
+				Date.now() / 1000 + this._currentPomodoro.secondsRemaining + 60,  // add 60 second buffer
 			);
 
 			const nextBreak = formatDate(
@@ -197,7 +197,7 @@ export default class PomodoroPlusVSC {
 		} else {
 			num_minutes = Math.floor(
 				this._currentPomodoro.secondsRemaining / 60,
-			);
+			) + 1;  // add 1 minute buffer
 		}
 		const data: any = {
 			num_minutes,
