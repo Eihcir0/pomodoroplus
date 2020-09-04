@@ -11,19 +11,24 @@ export enum PpStatus {
 	SetDone = 'Pomodoro Set Done',
 }
 
+interface PomoConfig {
+	workMinutes: number,
+	shortBreakMinutes: number,
+	longBreakMinutes: number
+}
+
 export default class Pomodoro {
-	// properties
 	private _status: PpStatus;
 	private _timer: Timer | undefined;
-
-	public get paused() {
-		return this._timer?.paused;
-	}
 
 	public get secondsRemaining() {
 		return this._timer
 			? this._timer.secondsRemaining
-			: this._workMinutes * 60;
+			: this._config.workMinutes * 60;
+	}
+
+	public get status() {
+		return this._status;
 	}
 
 	public get tickCount() {
@@ -32,8 +37,8 @@ export default class Pomodoro {
 			: 0;
 	}
 
-	public get status() {
-		return this._status;
+	public get paused() {
+		return this._timer?.paused;
 	}
 
 	public set status(status: PpStatus) {
@@ -41,9 +46,7 @@ export default class Pomodoro {
 	}
 
 	constructor(
-		private _workMinutes: number,
-		private _shortBreakMinutes: number,
-		private _longBreakMinutes: number,
+		private _config: PomoConfig,
 		public onUpdate: () => void,
 		public onFinish: () => void,
 	) {
@@ -54,13 +57,13 @@ export default class Pomodoro {
 		if (this._status === PpStatus.NotStarted) {
 			this._status = PpStatus.Working;
 			this._timer = new Timer(
-				this._workMinutes * 60,
+				this._config.workMinutes * 60,
 				this.onUpdate,
 				this._onFinish,
 			);
 		} else if (this._status === PpStatus.WorkDone) {
 			this._status = long ? PpStatus.LongBreak : PpStatus.Break;
-			const duration = long ? this._longBreakMinutes : this._shortBreakMinutes;
+			const duration = long ? this._config.longBreakMinutes : this._config.shortBreakMinutes;
 			this._timer = new Timer(
 				duration * 60,
 				this.onUpdate,

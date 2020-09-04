@@ -5,9 +5,7 @@ export function activate(context: vscode.ExtensionContext) {
 	const pomodoroPlusVsc = new PomodoroPlusVSC();
 	const activateDisposable = vscode.commands.registerCommand(
 		'pomodoroplus.activate',
-		() => {
-			pomodoroPlusVsc.handleStatusBarClick();
-		},
+		pomodoroPlusVsc.handleStatusBarClick
 	);
 
 	context.subscriptions.push(pomodoroPlusVsc, activateDisposable);

@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import * as ui from './uiHelpers';
 import * as say from 'say';
+
+import config from './config';
 import Pomodoro, { PpStatus } from './Pomodoro';
 import { ppid } from 'process';
-
-const CONFIG_NAME = 'pomodoroplus';
 
 enum Actions {
 	StartWorking = 'Start working',
@@ -18,45 +18,30 @@ enum Actions {
 export default class PomodoroPlusVSC {
 	private _completedPomodoroCount: number;
 	private _completedSetCount: number;
-	// private _config: vscode.WorkspaceConfiguration;
-	private _config: any;
+	private _config: any; //update me
 	private _currentPomodoro: Pomodoro;
 	private _statusBar: vscode.StatusBarItem;
-	// private _timeDisplay: vscode.StatusBarItem;
 
 	constructor() {
-		// this._config = vscode.workspace.getConfiguration(CONFIG_NAME);
-		this._config = {
-			workMinutes: 25,
-			shortBreakMinutes: 3,
-			longBreakMinutes: 20,
-			setMin: 4,
-			setMax: 6,
-		};
+		this._config = config;
 		this._completedPomodoroCount = 0;
 		this._completedSetCount = 0;
-
-		this._currentPomodoro = this._resetPomodoro();
+		this._currentPomodoro = this._createPomodoro();
 
 		this._statusBar = ui.createTomatoButton();
 		this._statusBar.show();
 	}
 
 	public handleStatusBarClick = () => {
-		if (this._currentPomodoro !== null) {
+		if (this._currentPomodoro.status !== PpStatus.NotStarted) {
+			say.speak('Pause');
 			this._currentPomodoro.pause();
 		}
 		this._showMainMenu();
 	};
 
-	private _resetPomodoro = () => {
-		return new Pomodoro(
-			this._config.workMinutes,
-			this._config.shortBreakMinutes,
-			this._config.longBreakMinutes,
-			this._onUpdate,
-			this._onFinish,
-		);
+	private _createPomodoro = () => {
+		return new Pomodoro(this._config, this._onUpdate, this._onFinish);
 	};
 
 	private _showMainMenu = () => {
@@ -92,14 +77,18 @@ export default class PomodoroPlusVSC {
 					}
 					message = `Finished work on P🍅MOdoro #${
 						this._completedPomodoroCount + 1
-					}, set #${this._completedSetCount + 1}. Would you like to start your ${
+					}, set #${
+						this._completedSetCount + 1
+					}. Would you like to start your ${
 						this._config.shortBreakMinutes
 					} minute long break?`;
 				} else {
 					actions.push(Actions.StartBreak);
 					message = `Finished work on P🍅MOdoro #${
 						this._completedPomodoroCount + 1
-					}, set #${this._completedSetCount + 1}. Would you like to start your ${
+					}, set #${
+						this._completedSetCount + 1
+					}. Would you like to start your ${
 						this._config.shortBreakMinutes
 					} minute break?`;
 				}
@@ -112,7 +101,10 @@ export default class PomodoroPlusVSC {
 				actions.push(Actions.StartNew);
 				break;
 			case PpStatus.SetDone:
-				const sets = this._completedSetCount === 1 ? '1 full set' : `${this._completedSetCount} full sets`;
+				const sets =
+					this._completedSetCount === 1
+						? '1 full set'
+						: `${this._completedSetCount} full sets`;
 				message = `Congratulations!  You've completed ${sets} of P🍅MOdoros. Would you like to begin set #${
 					this._completedSetCount + 1
 				}?`;
@@ -136,6 +128,7 @@ export default class PomodoroPlusVSC {
 				break;
 
 			case Actions.StartBreak:
+				say.speak('Give yourself a break');
 				this._currentPomodoro.start();
 				break;
 
@@ -144,15 +137,17 @@ export default class PomodoroPlusVSC {
 				break;
 
 			case Actions.ContinueWorking:
+				say.speak('Unpause');
 				this._currentPomodoro.unpause();
 				break;
 
 			case Actions.ContinueBreak:
+				say.speak('Unpause');
 				this._currentPomodoro.unpause();
 				break;
 
 			case Actions.StartNew:
-				this._currentPomodoro = this._resetPomodoro();
+				this._currentPomodoro = this._createPomodoro();
 				this._currentPomodoro.start();
 				break;
 
@@ -182,7 +177,7 @@ export default class PomodoroPlusVSC {
 	private _handleCancelConfirmResponse = (response: string | undefined) => {
 		if (response) {
 			this._currentPomodoro.cancel();
-			this._currentPomodoro = this._resetPomodoro();
+			this._currentPomodoro = this._createPomodoro();
 			this._onUpdate();
 		} else {
 			this._showMainMenu();
@@ -241,6 +236,6 @@ export default class PomodoroPlusVSC {
 	};
 
 	public dispose = () => {
-		// this._timer.kill()
+		this._currentPomodoro?.cancel();
 	};
 }

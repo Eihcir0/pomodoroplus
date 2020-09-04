@@ -19,31 +19,36 @@
 				"command": "pomodoroplus.activate",
 				"title": "Pomodoro+ (and \"Hi!\" devTooligan!)"
 			}
-		]
-	},
-	"configuration": {
-		"type": "object",
-		"title": "Pomodoro+ Settings",
-		"properties": {
-			"pomodoroplus.workMinutes": {
-				"type": "number",
-				"default": 25,
-				"description": "Pomodoro work session length (minutes)."
-			},
-			"pomodoroplus.breakMinutes": {
-				"type": "number",
-				"default": 3,
-				"description": "Pomodoro work session length (minutes)"
-			},
-			"pomodoroplus.setMin": {
-				"type": "number",
-				"default": 4,
-				"description": "Minimum sessions in a set.  After completing how many pomodoros should the user be prompted for a long break? (0 for never)"
-			},
-			"pomodoroplus.setMax": {
-				"type": "number",
-				"default": 6,
-				"description": "Maximum sessions allowed per set before requiring long break (0 for unlimited)"
+		],
+		"configuration": {
+			"type": "object",
+			"title": "Pomodoro+ Settings",
+			"properties": {
+				"pomodoroplus.slackAppBearerToken": {
+					"type": "string",
+					"default": 25,
+					"description": "Token from Slack app"
+				},
+				"pomodoroplus.workMinutes": {
+					"type": "number",
+					"default": 25,
+					"description": "Pomodoro work session length (minutes)"
+				},
+				"pomodoroplus.breakMinutes": {
+					"type": "number",
+					"default": 3,
+					"description": "Pomodoro work session length (minutes)"
+				},
+				"pomodoroplus.setMin": {
+					"type": "number",
+					"default": 4,
+					"description": "Minimum sessions in a set.  After completing how many pomodoros should the user be prompted for a long break? (0 for never)"
+				},
+				"pomodoroplus.setMax": {
+					"type": "number",
+					"default": 6,
+					"description": "Maximum sessions allowed per set before requiring long break (0 for unlimited)"
+				}
 			}
 		}
 	},
