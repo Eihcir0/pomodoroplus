@@ -22,9 +22,11 @@ export default class PomodoroPlusVSC {
 	private _config: any; //update me
 	private _currentPomodoro: Pomodoro;
 	private _statusBar: vscode.StatusBarItem;
+	private _slackEnabled: boolean;
 
 	constructor() {
 		this._config = config;
+		this._slackEnabled = !!this._config.slackAppBearerToken;
 		this._completedPomodoroCount = 0;
 		this._completedSetCount = 0;
 		this._currentPomodoro = this._createPomodoro();
@@ -47,52 +49,34 @@ export default class PomodoroPlusVSC {
 	private _showMainMenu = () => {
 		let message: string = '';
 		const actions: string[] = [];
+		const newPomodoroCount = this._completedPomodoroCount + 1;
 		switch (this._currentPomodoro.status) {
 			case PpStatus.NotStarted:
-				message = `P🍅MOdoro #${
-					this._completedPomodoroCount + 1
-				} -- Let's begin!`;
+				message = `P🍅MOdoro #${newPomodoroCount} -- Let's begin!`;
 				actions.push(Actions.StartWorking);
 				break;
 			case PpStatus.Working:
-				message = `P🍅MOdoro #${
-					this._completedPomodoroCount + 1
-				} -- working (paused)`;
+				message = `P🍅MOdoro #${newPomodoroCount} -- working (paused)`;
 				actions.push(Actions.ContinueWorking);
 				break;
 			case PpStatus.Break:
-				message = `P🍅MOdoro #${
-					this._completedPomodoroCount + 1
-				} -- on break (paused)`;
+				message = `P🍅MOdoro #${newPomodoroCount} -- on break (paused)`;
 				actions.push(Actions.ContinueBreak);
 				break;
 			case PpStatus.WorkDone:
-				if (this._completedPomodoroCount >= this._config.setMin - 1) {
-					message = `P🍅MOdoro #${
-						this._completedPomodoroCount + 1
-					} -- finished work.  Begin long break? (${
-						this._config.shortBreakMinutes
-					} minutes)`;
+				if (newPomodoroCount >= this._config.setMin) {
+					message = `P🍅MOdoro #${newPomodoroCount} -- finished work.  Begin long break? (${this._config.longBreakMinutes} minutes)`;
 					actions.push(Actions.StartLongBreak);
-					if (
-						this._completedPomodoroCount <
-						this._config.setMax - 1
-					) {
+					if (newPomodoroCount < this._config.setMax) {
 						actions.push(Actions.StartBreak);
 					}
 				} else {
-					message = `P🍅MOdoro #${
-						this._completedPomodoroCount + 1
-					} -- finished work.  Begin short break? (${
-						this._config.shortBreakMinutes
-					} minutes)`;
+					message = `P🍅MOdoro #${newPomodoroCount} -- finished work.  Begin short break? (${this._config.shortBreakMinutes} minutes)`;
 					actions.push(Actions.StartBreak);
 				}
 				break;
 			case PpStatus.PomodoroDone:
-				message = `Begin P🍅MOdoro #${
-					this._completedPomodoroCount + 1
-				}, set #${this._completedSetCount + 1}?`;
+				message = `Begin P🍅MOdoro #${newPomodoroCount} of set #${newPomodoroCount}?`;
 				actions.push(Actions.StartNew);
 				break;
 			case PpStatus.SetDone:
@@ -100,9 +84,7 @@ export default class PomodoroPlusVSC {
 					this._completedSetCount === 1
 						? '1 full set'
 						: `${this._completedSetCount} full sets`;
-				message = `Congratulations!  You've completed ${sets} of P🍅MOdoros. Begin set #${
-					this._completedSetCount + 1
-				}?`;
+				message = `Congratulations!  You've completed ${sets} of P🍅MOdoros. Begin set #${newPomodoroCount}?`;
 				actions.push(Actions.StartNew);
 				break;
 			default:
@@ -172,7 +154,7 @@ export default class PomodoroPlusVSC {
 			};
 		} else {
 			const status_expiration = Math.floor(
-				Date.now() / 1000 + this._currentPomodoro.secondsRemaining + 60,  // add 60 second buffer
+				Date.now() / 1000 + this._currentPomodoro.secondsRemaining + 60, // add 60 second buffer
 			);
 
 			const nextBreak = formatDate(
@@ -187,7 +169,12 @@ export default class PomodoroPlusVSC {
 			};
 		}
 		const path = '/api/users.profile.set';
-		request.makeSlackRequest(data, this._config.slackAppBearerToken, true, path);
+		request.makeSlackRequest(
+			data,
+			this._config.slackAppBearerToken,
+			true,
+			path,
+		);
 	};
 
 	private _setSlackPauseNotifications = (reset = false) => {
@@ -195,25 +182,33 @@ export default class PomodoroPlusVSC {
 		if (reset) {
 			num_minutes = 0;
 		} else {
-			num_minutes = Math.floor(
-				this._currentPomodoro.secondsRemaining / 60,
-			) + 1;  // add 1 minute buffer
+			num_minutes =
+				Math.floor(this._currentPomodoro.secondsRemaining / 60) + 1; // add 1 minute buffer
 		}
 		const data: any = {
 			num_minutes,
 		};
 		const path = '/api/dnd.setSnooze';
-		request.makeSlackRequest(data, this._config.slackAppBearerToken, false, path);
+		request.makeSlackRequest(
+			data,
+			this._config.slackAppBearerToken,
+			false,
+			path,
+		);
 	};
 
 	private _setSlackWorking = () => {
-		this._setSlackStatus();
-		this._setSlackPauseNotifications();
+		if (this._slackEnabled) {
+			this._setSlackStatus();
+			this._setSlackPauseNotifications();
+		}
 	};
 
 	private _setSlackStopWorking = () => {
-		this._setSlackStatus(true);
-		this._setSlackPauseNotifications(true);
+		if (this._slackEnabled) {
+			this._setSlackStatus(true);
+			this._setSlackPauseNotifications(true);
+		}
 	};
 
 	private _confirmCancel = () => {
