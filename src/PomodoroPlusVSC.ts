@@ -84,7 +84,7 @@ export default class PomodoroPlusVSC {
 					this._completedSetCount === 1
 						? '1 full set'
 						: `${this._completedSetCount} full sets`;
-				message = `Congratulations!  You've completed ${sets} of P🍅MOdoros. Begin set #${newPomodoroCount}?`;
+				message = `Congratulations!  You've completed ${sets} of P🍅MOdoros. Begin set #${this._completedSetCount + 1}?`;
 				actions.push(Actions.StartNew);
 				break;
 			default:

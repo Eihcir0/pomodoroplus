@@ -1,0 +1,11 @@
+Turn Set into a class
+Day class
+Handle multi-sets / days
+sets enabled?
+Think about what you want to be able to do:
+abandon a pomodoro?  What if u completed the work?
+what about when on break?
+can u abandon set at any time?
+maybe if u want to have some 1-3 pomodoro sets they get saved as a set but are not counted as a full set?
+
+THEN TESTS!!!
