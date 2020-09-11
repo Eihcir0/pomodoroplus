@@ -11,7 +11,7 @@ export enum PpStatus {
 	SetDone = 'Pomodoro Set Done',
 }
 
-interface PomoConfig {
+export interface PomoConfig {
 	workMinutes: number,
 	shortBreakMinutes: number,
 	longBreakMinutes: number
@@ -64,6 +64,7 @@ export default class Pomodoro {
 		} else if (this._status === PpStatus.WorkDone) {
 			this._status = long ? PpStatus.LongBreak : PpStatus.Break;
 			const duration = long ? this._config.longBreakMinutes : this._config.shortBreakMinutes;
+			console.log('duration', duration);
 			this._timer = new Timer(
 				duration * 60,
 				this.onUpdate,

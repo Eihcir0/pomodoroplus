@@ -18,6 +18,9 @@ export default class Timer {
 		private _onTick: () => void,
 		private _onFinish: () => void,
 	) {
+		if (isNaN(_targetSeconds)) {
+			debugger
+		}
 		this._latestStartTime = Date.now();
 		// this.secondsRemaining = Math.round(this._targetSeconds);
 		this.secondsRemaining = this._targetSeconds;
