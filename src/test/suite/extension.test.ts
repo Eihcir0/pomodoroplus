@@ -6,7 +6,7 @@ import * as vscode from 'vscode';
 import * as extension from '../../extension';
 
 suite('Extension Test Suite', () => {
-	// CAN I TEST CONFIG OPTIONS?
+	// CAN I / SHOULD I TEST CONFIG OPTIONS HERE?
 	vscode.window.showInformationMessage('Start all tests.');
 
 	test('Sample test', () => {

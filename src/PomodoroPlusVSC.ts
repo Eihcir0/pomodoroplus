@@ -5,7 +5,7 @@ import * as ui from './helpers/ui';
 import * as request from './helpers/request';
 import { formatDate } from './helpers/index';
 import config from './config';
-import Pomodoro, { PpStatus } from './Pomodoro';
+import Pomodoro, { PpStatus, PpDoneStatuses } from './Pomodoro';
 
 enum Actions {
 	StartWorking = 'Start working',
@@ -13,12 +13,14 @@ enum Actions {
 	StartBreak = 'Start break',
 	StartLongBreak = 'Start long break',
 	ContinueBreak = 'Continue break',
+	SkipBreak = 'Skip break and start new P🍅MO now',
 	StartNew = 'Start new P🍅MOdoro',
 }
 
 export default class PomodoroPlusVSC {
-	private _completedPomodoroCount: number;
+	private _completedPomodoroCountForCurrentSet: number;
 	private _completedSetCount: number;
+	private _overallCompletedPomodoroCount: number;
 	private _config: any; //update me
 	private _currentPomodoro: Pomodoro;
 	private _statusBar: vscode.StatusBarItem;
@@ -27,7 +29,8 @@ export default class PomodoroPlusVSC {
 	constructor() {
 		this._config = config;
 		this._slackEnabled = !!this._config.slackAppBearerToken;
-		this._completedPomodoroCount = 0;
+		this._overallCompletedPomodoroCount = 0;
+		this._completedPomodoroCountForCurrentSet = 0;
 		this._completedSetCount = 0;
 		this._currentPomodoro = this._createPomodoro();
 		this._statusBar = ui.createTomatoButton();
@@ -49,7 +52,7 @@ export default class PomodoroPlusVSC {
 	private _showMainMenu = () => {
 		let message: string = '';
 		const actions: string[] = [];
-		const newPomodoroCount = this._completedPomodoroCount + 1;
+		const newPomodoroCount = this._completedPomodoroCountForCurrentSet + 1;
 		switch (this._currentPomodoro.status) {
 			case PpStatus.NotStarted:
 				message = `P🍅MOdoro #${newPomodoroCount} -- Let's begin!`;
@@ -62,21 +65,39 @@ export default class PomodoroPlusVSC {
 			case PpStatus.Break:
 				message = `P🍅MOdoro #${newPomodoroCount} -- on break (paused)`;
 				actions.push(Actions.ContinueBreak);
+				actions.push(Actions.SkipBreak);
+				break;
+			case PpStatus.LongBreak:
+				message = `P🍅MOdoro #${newPomodoroCount} -- on break (paused)`;
+				actions.push(Actions.ContinueBreak);
+				actions.push(Actions.SkipBreak);
 				break;
 			case PpStatus.WorkDone:
-				if (newPomodoroCount >= this._config.setMin) {
+				if (
+					this._completedPomodoroCountForCurrentSet >=
+					this._config.setMin
+				) {
+					console.log(this._completedPomodoroCountForCurrentSet);
+					console.log(this._config.setMin);
+					console.log(this._config.setMax);
 					message = `P🍅MOdoro #${newPomodoroCount} -- finished work.  Begin long break? (${this._config.longBreakMinutes} minutes)`;
 					actions.push(Actions.StartLongBreak);
-					if (newPomodoroCount < this._config.setMax) {
+					if (
+						this._completedPomodoroCountForCurrentSet <
+						this._config.setMax
+					) {
 						actions.push(Actions.StartBreak);
 					}
 				} else {
 					message = `P🍅MOdoro #${newPomodoroCount} -- finished work.  Begin short break? (${this._config.shortBreakMinutes} minutes)`;
 					actions.push(Actions.StartBreak);
 				}
+				actions.push(Actions.SkipBreak);
 				break;
 			case PpStatus.PomodoroDone:
-				message = `Begin P🍅MOdoro #${newPomodoroCount} of set #${newPomodoroCount}?`;
+				message = `Begin P🍅MOdoro #${newPomodoroCount} of set #${
+					this._completedSetCount + 1
+				}?`;
 				actions.push(Actions.StartNew);
 				break;
 			case PpStatus.SetDone:
@@ -84,13 +105,20 @@ export default class PomodoroPlusVSC {
 					this._completedSetCount === 1
 						? '1 full set'
 						: `${this._completedSetCount} full sets`;
-				message = `Congratulations!  You've completed ${sets} of P🍅MOdoros. Begin set #${this._completedSetCount + 1}?`;
+				message = `Congratulations!  You've completed ${sets} of P🍅MOdoros. Begin set #${
+					this._completedSetCount + 1
+				}?`;
 				actions.push(Actions.StartNew);
 				break;
 			default:
 				break;
 		}
-
+		message = `${message}\n\n${
+			this._overallCompletedPomodoroCount
+				? 'Completed today:' +
+				  '🍅'.repeat(this._overallCompletedPomodoroCount)
+				: ''
+		}`;
 		ui.openModalWithActionButtons(
 			message,
 			actions,
@@ -132,6 +160,24 @@ export default class PomodoroPlusVSC {
 				this._currentPomodoro = this._createPomodoro();
 				this._currentPomodoro.start();
 				this._setSlackWorking();
+				break;
+
+			case Actions.SkipBreak:
+				if (this._currentPomodoro.status === PpStatus.WorkDone) {
+					if (
+						this._completedPomodoroCountForCurrentSet <
+						this._config.setMax
+					) {
+						this._currentPomodoro.status = PpStatus.Break;
+					} else {
+						this._currentPomodoro.status = PpStatus.LongBreak;
+					}
+				} else if (
+					this._currentPomodoro.status === PpStatus.LongBreak
+				) {
+					this._completedPomodoroCountForCurrentSet;
+				}
+				this._currentPomodoro.skip();
 				break;
 
 			default:
@@ -218,20 +264,28 @@ export default class PomodoroPlusVSC {
 		) {
 			return;
 		} else {
-			ui.openModalWithActionButtons(
-				'Are you sure you want to end this Pomodoro session early?',
-				['Yes, abort this Pomodoro'],
-				this._handleCancelConfirmResponse,
-			);
+			if (PpDoneStatuses.includes(this._currentPomodoro.status)) {
+				this._cancelCurrentPomodoro();
+			} else {
+				ui.openModalWithActionButtons(
+					'Are you sure you want to end this Pomodoro session early?',
+					['Yes, abort this Pomodoro'],
+					this._handleCancelConfirmResponse,
+				);
+			}
 		}
+	};
+
+	private _cancelCurrentPomodoro = () => {
+		this._currentPomodoro.cancel();
+		this._currentPomodoro = this._createPomodoro();
+		this._onUpdate();
+		this._setSlackStopWorking();
 	};
 
 	private _handleCancelConfirmResponse = (response: string | undefined) => {
 		if (response) {
-			this._currentPomodoro.cancel();
-			this._currentPomodoro = this._createPomodoro();
-			this._onUpdate();
-			this._setSlackStopWorking();
+			this._cancelCurrentPomodoro()
 		} else {
 			this._showMainMenu();
 		}
@@ -272,14 +326,18 @@ export default class PomodoroPlusVSC {
 		if (this._currentPomodoro.status === PpStatus.WorkDone) {
 			say.speak('This Pomodoro work session is now over.');
 		} else if (this._currentPomodoro.status === PpStatus.PomodoroDone) {
+			// We could track breaks
 			say.speak('Break time is over.');
-			this._completedPomodoroCount += 1;
+			this._completedPomodoroCountForCurrentSet += 1;
+			this._overallCompletedPomodoroCount += 1;
 		} else if (this._currentPomodoro.status === PpStatus.SetDone) {
+			// and long breaks
 			say.speak(
 				'You completed an entire set of Pomodoros.  Congratulations.',
 			);
-			this._completedPomodoroCount = 0;
 			this._completedSetCount += 1;
+			this._completedPomodoroCountForCurrentSet = 0;
+			this._overallCompletedPomodoroCount += 1;
 		}
 		this._onUpdate();
 		this._setSlackStopWorking();

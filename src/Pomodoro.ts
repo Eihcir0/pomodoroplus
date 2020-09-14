@@ -11,6 +11,11 @@ export enum PpStatus {
 	SetDone = 'Pomodoro Set Done',
 }
 
+export const PpDoneStatuses = [
+	PpStatus.PomodoroDone,
+	PpStatus.SetDone,
+];
+
 export interface PomoConfig {
 	workMinutes: number,
 	shortBreakMinutes: number,
@@ -73,6 +78,22 @@ export default class Pomodoro {
 		}
 	}
 
+	private _advanceStatus() {
+		if (this._status === PpStatus.Working) {
+			this._status = PpStatus.WorkDone;
+		} else if (this.status === PpStatus.Break) {
+			this._status = PpStatus.PomodoroDone;
+		} else if (this.status === PpStatus.LongBreak) {
+			this._status = PpStatus.SetDone;
+		}
+	}
+
+	public skip() {
+		this._timer?.clearTimeout();
+		this._timer = undefined;
+		this._onFinish();
+	}
+
 	public cancel() {
 		this._timer?.clearTimeout();
 	}
@@ -86,13 +107,7 @@ export default class Pomodoro {
 	};
 
 	private _onFinish = () => {
-		if (this._status === PpStatus.Working) {
-			this._status = PpStatus.WorkDone;
-		} else if (this.status === PpStatus.Break) {
-			this._status = PpStatus.PomodoroDone;
-		} else if (this.status === PpStatus.LongBreak) {
-			this._status = PpStatus.SetDone;
-		}
+		this._advanceStatus();
 		this.onFinish();
 	};
 }
