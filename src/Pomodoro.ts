@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import Timer from './Timer';
+import { XstateTimer } from './XstateTimerSrc/XstateTimer';
 
 export enum PpStatus {
 	NotStarted = 'Not Started',
@@ -11,20 +12,17 @@ export enum PpStatus {
 	SetDone = 'Pomodoro Set Done',
 }
 
-export const PpDoneStatuses = [
-	PpStatus.PomodoroDone,
-	PpStatus.SetDone,
-];
+export const PpDoneStatuses = [PpStatus.PomodoroDone, PpStatus.SetDone];
 
 export interface PomoConfig {
-	workMinutes: number,
-	shortBreakMinutes: number,
-	longBreakMinutes: number
+	workMinutes: number;
+	shortBreakMinutes: number;
+	longBreakMinutes: number;
 }
 
 export default class Pomodoro {
 	private _status: PpStatus;
-	private _timer: Timer | undefined;
+	private _timer: XstateTimer | undefined;
 
 	public get secondsRemaining() {
 		return this._timer
@@ -37,9 +35,8 @@ export default class Pomodoro {
 	}
 
 	public get tickCount() {
-		return this._timer
-			? this._timer.tickCounter
-			: 0;
+		// return 1;
+		return this._timer ? this._timer.tickCounter : 0;
 	}
 
 	public get paused() {
@@ -61,22 +58,28 @@ export default class Pomodoro {
 	public start(long: boolean = false) {
 		if (this._status === PpStatus.NotStarted) {
 			this._status = PpStatus.Working;
-			this._timer = new Timer(
+			this._timer = new XstateTimer(
 				this._config.workMinutes * 60,
 				this.onUpdate,
 				this._onFinish,
 			);
 		} else if (this._status === PpStatus.WorkDone) {
 			this._status = long ? PpStatus.LongBreak : PpStatus.Break;
-			const duration = long ? this._config.longBreakMinutes : this._config.shortBreakMinutes;
+			const duration = long
+				? this._config.longBreakMinutes
+				: this._config.shortBreakMinutes;
 			console.log('duration', duration);
-			this._timer = new Timer(
+			this._timer = new XstateTimer(
 				duration * 60,
 				this.onUpdate,
 				this._onFinish,
 			);
 		}
 	}
+
+	// public extendWork(extensionMinutes) {
+	// 	this._status = PpStatus.Working
+	// }
 
 	private _advanceStatus() {
 		if (this._status === PpStatus.Working) {
@@ -88,14 +91,19 @@ export default class Pomodoro {
 		}
 	}
 
-	public skip() {
-		this._timer?.clearTimeout();
-		this._timer = undefined;
+	private _stopTimer = () => {
+		if (this._timer !== undefined) {
+			this._timer.kill();
+			this._timer = undefined;
+		}
+	};
+	public skip = () => {
+		this._stopTimer();
 		this._onFinish();
-	}
+	};
 
 	public cancel() {
-		this._timer?.clearTimeout();
+		this._timer?.kill();
 	}
 
 	public pause = () => {
