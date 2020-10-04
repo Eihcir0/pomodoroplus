@@ -4,7 +4,7 @@ import { TimerStatus, TimerContext, TimerEvent, TimerState } from './types';
 const { Paused, Idle } = TimerStatus;
 const TICK_INTERVAL = 500; // TODO: optionally pass this in
 
-class XStateTimer {
+class Timer {
 	public secondsRemaining: number;
 	public tickCounter: number;
 	public get paused() {
@@ -39,9 +39,16 @@ class XStateTimer {
 		this._service.send('UNPAUSE');
 	};
 
+	public extend = (value: number) => {
+		this._service.send('DURATION.UPDATE', { value });
+	};
+
 	public kill = () => this._service.stop();
 
 	private _onTimerUpdate = (state: State<TimerContext, TimerEvent>) => {
+		console.log(state);
+		console.log(state.event.type);
+
 		if (state.value === Idle) {
 			this._onFinish();
 		}
@@ -54,12 +61,11 @@ class XStateTimer {
 				state.context.duration - state.context.elapsed;
 			this._onTick();
 		}
-		console.log(state.event.type, state);
 	};
 }
-export { XStateTimer };
+export { Timer };
 // console.log('hello');
-// const timer = new XStateTimer(
+// const timer = new Timer(
 // 	10,
 // 	() => console.log('onTick'),
 // 	() => console.log('finished'),

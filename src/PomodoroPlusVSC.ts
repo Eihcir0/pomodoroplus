@@ -8,6 +8,8 @@ import config from './config';
 import Pomodoro, { PpStatus, PpDoneStatuses } from './Pomodoro';
 
 enum Actions {
+	Extend5Minutes = 'Extend work 5 minutes',
+	Extend1Minute = 'Extend work 1 minute',
 	StartWorking = 'Start working',
 	ContinueWorking = 'Continue working',
 	StartBreak = 'Start break',
@@ -77,9 +79,6 @@ export default class PomodoroPlusVSC {
 					this._completedPomodoroCountForCurrentSet >=
 					this._config.setMin
 				) {
-					console.log(this._completedPomodoroCountForCurrentSet);
-					console.log(this._config.setMin);
-					console.log(this._config.setMax);
 					message = `P🍅MOdoro #${newPomodoroCount} -- finished work.  Begin long break? (${this._config.longBreakMinutes} minutes)`;
 					actions.push(Actions.StartLongBreak);
 					if (
@@ -92,6 +91,8 @@ export default class PomodoroPlusVSC {
 					message = `P🍅MOdoro #${newPomodoroCount} -- finished work.  Begin short break? (${this._config.shortBreakMinutes} minutes)`;
 					actions.push(Actions.StartBreak);
 				}
+				actions.push(Actions.Extend5Minutes)
+				actions.push(Actions.Extend1Minute)
 				actions.push(Actions.SkipBreak);
 				break;
 			case PpStatus.PomodoroDone:
@@ -160,6 +161,14 @@ export default class PomodoroPlusVSC {
 				this._currentPomodoro = this._createPomodoro();
 				this._currentPomodoro.start();
 				this._setSlackWorking();
+				break;
+
+			case Actions.Extend5Minutes:
+				this._currentPomodoro.extendWork(5);
+				break;
+
+			case Actions.Extend1Minute:
+				this._currentPomodoro.extendWork(1);
 				break;
 
 			case Actions.SkipBreak:
@@ -285,7 +294,7 @@ export default class PomodoroPlusVSC {
 
 	private _handleCancelConfirmResponse = (response: string | undefined) => {
 		if (response) {
-			this._cancelCurrentPomodoro()
+			this._cancelCurrentPomodoro();
 		} else {
 			this._showMainMenu();
 		}

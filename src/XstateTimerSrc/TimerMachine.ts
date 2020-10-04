@@ -17,8 +17,6 @@ import {
 } from './types';
 
 const { Running, Idle, Paused } = TimerStatus;
-// model tests
-// immer?
 
 const timerMachineConfig: MachineConfig<
 	TimerContext,
@@ -69,9 +67,10 @@ const timerMachineConfig: MachineConfig<
 			}),
 		},
 		'DURATION.UPDATE': {
-			actions: assign({
-				duration: (_, event) => event.value,
-			}),
+			actions: [assign({
+				duration: (context, event) => context.duration + event.value,
+				startTime: _ => Date.now(),
+			}), (_, e)=>console.log('updated', e.value)],
 		},
 	},
 };
@@ -114,6 +113,11 @@ const onPause = assign<TimerContext, TimerEvent>({
 	},
 });
 
+const onExpire = assign<TimerContext, TimerEvent>({
+	elapsed: context => context.duration,
+	offSet: _ => 0,
+});
+
 const onUnpause = assign<TimerContext, TimerEvent>({
 	startTime: _ => Date.now(),
 });
@@ -123,6 +127,7 @@ const timerOptions: MachineOptions<TimerContext, TimerEvent> = {
 		onTick,
 		onPause,
 		onUnpause,
+		onExpire,
 	},
 	guards: {
 		checkExpired,

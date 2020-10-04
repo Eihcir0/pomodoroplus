@@ -1,6 +1,6 @@
-import * as vscode from 'vscode';
-import Timer from './XStateTimerSrc/OldTimer';
-import { XStateTimer } from './XStateTimerSrc/XStateTimer';
+// import * as vscode from 'vscode';
+// import Timer from './XStateTimerSrc/OldTimer';
+import { Timer } from './XStateTimerSrc/XStateTimer';
 
 export enum PpStatus {
 	NotStarted = 'Not Started',
@@ -22,7 +22,7 @@ export interface PomoConfig {
 
 export default class Pomodoro {
 	private _status: PpStatus;
-	private _timer: XStateTimer | undefined;
+	private _timer: Timer | undefined;
 
 	public get secondsRemaining() {
 		return this._timer
@@ -58,7 +58,7 @@ export default class Pomodoro {
 	public start(long: boolean = false) {
 		if (this._status === PpStatus.NotStarted) {
 			this._status = PpStatus.Working;
-			this._timer = new XStateTimer(
+			this._timer = new Timer(
 				this._config.workMinutes * 60,
 				this.onUpdate,
 				this._onFinish,
@@ -69,7 +69,7 @@ export default class Pomodoro {
 				? this._config.longBreakMinutes
 				: this._config.shortBreakMinutes;
 			console.log('duration', duration);
-			this._timer = new XStateTimer(
+			this._timer = new Timer(
 				duration * 60,
 				this.onUpdate,
 				this._onFinish,
@@ -77,9 +77,10 @@ export default class Pomodoro {
 		}
 	}
 
-	// public extendWork(extensionMinutes) {
-	// 	this._status = PpStatus.Working
-	// }
+	public extendWork(extensionMinutes: number) {
+		this._status = PpStatus.Working;
+		this._timer?.extend(extensionMinutes * 60);
+	}
 
 	private _advanceStatus() {
 		if (this._status === PpStatus.Working) {
