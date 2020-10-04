@@ -7,7 +7,7 @@ import {
 	StateMachine,
 	interpret,
 } from 'xstate';
-import Timer from '../Timer';
+import Timer from './OldTimer';
 import {
 	CreateTimerServiceOptions,
 	TimerContext,

@@ -4,7 +4,7 @@ import { TimerStatus, TimerContext, TimerEvent, TimerState } from './types';
 const { Paused, Idle } = TimerStatus;
 const TICK_INTERVAL = 500; // TODO: optionally pass this in
 
-class XstateTimer {
+class XStateTimer {
 	public secondsRemaining: number;
 	public tickCounter: number;
 	public get paused() {
@@ -57,9 +57,9 @@ class XstateTimer {
 		console.log(state.event.type, state);
 	};
 }
-export { XstateTimer };
+export { XStateTimer };
 // console.log('hello');
-// const timer = new XstateTimer(
+// const timer = new XStateTimer(
 // 	10,
 // 	() => console.log('onTick'),
 // 	() => console.log('finished'),
