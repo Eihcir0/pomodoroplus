@@ -27,7 +27,7 @@ export const makeSlackRequest = (
 
     const callBack = (res: any) => {
         res.on('data', (d: any) => {
-            // console.log('data: ' + d);
+            console.log('data: ' + d);
         });
     };
 
