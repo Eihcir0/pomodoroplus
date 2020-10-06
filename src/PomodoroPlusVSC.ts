@@ -91,8 +91,8 @@ export default class PomodoroPlusVSC {
 					message = `P🍅MOdoro #${newPomodoroCount} -- finished work.  Begin short break? (${this._config.shortBreakMinutes} minutes)`;
 					actions.push(Actions.StartBreak);
 				}
-				actions.push(Actions.Extend5Minutes)
-				actions.push(Actions.Extend1Minute)
+				actions.push(Actions.Extend5Minutes);
+				actions.push(Actions.Extend1Minute);
 				actions.push(Actions.SkipBreak);
 				break;
 			case PpStatus.PomodoroDone:

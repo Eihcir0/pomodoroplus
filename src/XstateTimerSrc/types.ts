@@ -12,23 +12,22 @@ export enum TimerStatus {
 	Paused = 'paused',
 }
 
-
 export type TimerEvent =
 	| {
-			type: 'TICK';
+			type: 'START';
 	  }
 	| {
 			type: 'DURATION.UPDATE';
 			value: number;
 	  }
 	| {
+			type: 'TICK';
+	  }
+	| {
 			type: 'RESET';
 	  }
 	| {
 			type: 'PAUSE';
-	  }
-	| {
-			type: 'START';
 	  }
 	| {
 			type: 'UNPAUSE';
@@ -49,7 +48,7 @@ export type TimerState =
 	  }
 	| {
 			value: TimerStatus.Idle;
-			context: TimerContext & { offSet: number; startTime: number };
+			context: TimerContext;
 	  };
 
 export type CreateTimerServiceOptions = {

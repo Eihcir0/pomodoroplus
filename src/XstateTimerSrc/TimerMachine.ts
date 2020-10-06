@@ -7,7 +7,6 @@ import {
 	StateMachine,
 	interpret,
 } from 'xstate';
-import Timer from './OldTimer';
 import {
 	CreateTimerServiceOptions,
 	TimerContext,
@@ -25,6 +24,7 @@ const timerMachineConfig: MachineConfig<
 > = {
 	states: {
 		[Running]: {
+			entry: 'enterRunning',
 			always: {
 				target: Idle,
 				cond: 'checkExpired',
@@ -63,14 +63,10 @@ const timerMachineConfig: MachineConfig<
 			actions: assign({
 				elapsed: _ => 0,
 				offSet: _ => 0,
-				startTime: _ => Date.now(),
 			}),
 		},
 		'DURATION.UPDATE': {
-			actions: [assign({
-				duration: (context, event) => context.duration + event.value,
-				startTime: _ => Date.now(),
-			}), (_, e)=>console.log('updated', e.value)],
+			actions: 'onDurationUpdate',
 		},
 	},
 };
@@ -83,7 +79,6 @@ const checkDuration = (context: TimerContext) =>
 
 const ticker = (context: TimerContext) => (cb: (message: string) => void) => {
 	const interval = setInterval(() => {
-		console.log('actor sending tick');
 		cb('TICK');
 	}, 1000 * context.interval);
 
@@ -95,7 +90,7 @@ const ticker = (context: TimerContext) => (cb: (message: string) => void) => {
 const onTick = assign<TimerContext, TimerEvent>({
 	elapsed: context => {
 		const elapsed = Math.min(
-			(Date.now() - context.startTime + context.offSet) / 1000,
+			((Date.now() - context.startTime) / 1000) + context.offSet,
 			context.duration,
 		);
 		return +elapsed.toFixed(2);
@@ -118,16 +113,27 @@ const onExpire = assign<TimerContext, TimerEvent>({
 	offSet: _ => 0,
 });
 
-const onUnpause = assign<TimerContext, TimerEvent>({
+const enterRunning = assign<TimerContext, TimerEvent>({
 	startTime: _ => Date.now(),
+});
+
+const onDurationUpdate = assign<TimerContext, TimerEvent>({
+	duration: (context, event) => {
+		if (event.type === 'DURATION.UPDATE') {
+			return context.duration + event?.value;
+		}
+		return context.duration;
+	},
+	offSet: context => context.duration,
 });
 
 const timerOptions: MachineOptions<TimerContext, TimerEvent> = {
 	actions: {
 		onTick,
 		onPause,
-		onUnpause,
+		enterRunning,
 		onExpire,
+		onDurationUpdate,
 	},
 	guards: {
 		checkExpired,
@@ -154,7 +160,7 @@ export const createTimerMachine = (
 	return createMachine<TimerContext, TimerEvent>(
 		{
 			...timerMachineConfig,
-			initial: 'running',
+			initial: Running,
 			context,
 		},
 		timerOptions,

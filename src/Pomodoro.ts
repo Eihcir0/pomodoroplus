@@ -68,7 +68,6 @@ export default class Pomodoro {
 			const duration = long
 				? this._config.longBreakMinutes
 				: this._config.shortBreakMinutes;
-			console.log('duration', duration);
 			this._timer = new Timer(
 				duration * 60,
 				this.onUpdate,
